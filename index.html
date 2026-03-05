@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Kalkulator Lembur Ringkas - Spartan</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background-color: #f4f7f6; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h2 { color: #217346; text-align: center; margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #666; margin-bottom: 25px; font-size: 0.9em; }
+        
+        .header-input { background: #f1f8f4; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 20px; border: 1px solid #c3e6cb; }
+        .header-input label { font-weight: bold; color: #155724; }
+        .header-input input { padding: 8px; border: 1px solid #ced4da; border-radius: 4px; width: 180px; font-size: 1em; }
+        
+        table { border-collapse: collapse; width: 100%; border-radius: 8px; overflow: hidden; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px; text-align: center; }
+        th { background-color: #217346; color: white; font-size: 14px; }
+        
+        .jam-input { width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align: center; font-weight: bold; background-color: #fffde7; }
+        
+        /* Kolom Tipe disembunyikan dengan display: none */
+        .col-tipe { display: none; }
+        
+        .subtotal { font-weight: bold; color: #217346; font-family: 'Courier New', monospace; }
+        .total-row { background-color: #217346; color: white; font-weight: bold; }
+        #grandTotalBayar { font-size: 1.2em; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Smart Overtime Calculator</h2>
+    <p class="subtitle"></p>
+    
+    <div class="header-input">
+        <div>
+            <label>Gaji Pokok (Rp):</label>
+            <input type="number" id="gajiPokok" value="2484162" oninput="hitungTotal()">
+        </div>
+        <div style="font-size: 0.85em; color: #555;">
+            Nilai Per Jam: <span id="valPerJam">Rp 0</span><br>
+            <i>(Gaji Pokok / 173)</i>
+        </div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th width="9%">Tgl</th>
+                <th width="21%">Input Jam</th>
+                <th class="col-tipe">Tipe (Hidden)</th>
+                <th width="35%">Rincian Faktor (Sesuai Foto)</th>
+                <th width="35%">Total Upah</th>
+            </tr>
+        </thead>
+        <tbody id="lemburBody">
+            </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td>TOTAL</td>
+                <td id="totalJamSemua">0</td>
+                <td class="col-tipe">-</td>
+                <td>GRAND TOTAL</td>
+                <td id="grandTotalBayar">Rp 0</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<script>
+    const tbody = document.getElementById('lemburBody');
+
+    for (let i = 1; i <= 31; i++) {
+        let row = `
+            <tr>
+                <td>${i}</td>
+                <td><input type="number" class="jam-input" placeholder="0" step="0.5" oninput="hitungTotal()"></td>
+                <td class="col-tipe" id="tipe-${i}">-</td>
+                <td id="detail-${i}" style="font-size: 11px; color: #777;">Masukan jam...</td>
+                <td class="subtotal" id="subtotal-${i}">Rp 0</td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    }
+
+    function hitungTotal() {
+        const gajiPokok = parseFloat(document.getElementById('gajiPokok').value) || 0;
+        const upahPerJam = gajiPokok / 173; 
+        document.getElementById('valPerJam').innerText = "Rp " + Math.round(upahPerJam).toLocaleString('id-ID');
+        
+        const rows = document.querySelectorAll("#lemburBody tr");
+        let grandTotalJam = 0;
+        let grandTotalUpah = 0;
+
+        rows.forEach((row, index) => {
+            const tgl = index + 1;
+            const jam = parseFloat(row.querySelector(".jam-input").value) || 0;
+            const displayDetail = document.getElementById(`detail-${tgl}`);
+            const displaySubtotal = document.getElementById(`subtotal-${tgl}`);
+
+            let upahLembur = 0;
+            let detailTeks = "";
+
+            if (jam > 0) {
+                if (jam < 8) {
+                    // HARI KERJA
+                    if (jam <= 1) {
+                        upahLembur = jam * upahPerJam * 1.5;
+                        detailTeks = "1j x 150%";
+                    } else {
+                        upahLembur = (1 * upahPerJam * 1.5) + ((jam - 1) * upahPerJam * 2.0);
+                        detailTeks = "1j x 150% + " + (jam-1) + "j x 200%";
+                    }
+                } else {
+                    // HARI LIBUR
+                    if (jam <= 8) {
+                        upahLembur = jam * upahPerJam * 2.0;
+                        detailTeks = jam + "j x 200%";
+                    } else if (jam <= 9) {
+                        upahLembur = (8 * upahPerJam * 2.0) + ((jam - 8) * upahPerJam * 3.0);
+                        detailTeks = "8j x 200% + " + (jam-8) + "j x 300%";
+                    } else {
+                        upahLembur = (8 * upahPerJam * 2.0) + (1 * upahPerJam * 3.0) + ((jam - 9) * upahPerJam * 4.0);
+                        detailTeks = "8j x 200% + 1j x 300% + " + (jam-9) + "j x 400%";
+                    }
+                }
+                
+                displayDetail.innerText = detailTeks;
+                displaySubtotal.innerText = "Rp " + Math.round(upahLembur).toLocaleString('id-ID');
+                
+                grandTotalJam += jam;
+                grandTotalUpah += upahLembur;
+            } else {
+                displayDetail.innerText = "Masukan jam...";
+                displaySubtotal.innerText = "Rp 0";
+            }
+        });
+
+        document.getElementById("totalJamSemua").innerText = grandTotalJam;
+        document.getElementById("grandTotalBayar").innerText = "Rp " + Math.round(grandTotalUpah).toLocaleString('id-ID');
+    }
+</script>
+<script>
+
+const STORAGE_KEY = "lembur_spartan_data";
+
+/* SIMPAN DATA */
+function autoSave(){
+
+    let data = {
+        gaji: document.getElementById("gajiPokok").value,
+        jam: []
+    }
+
+    document.querySelectorAll(".jam-input").forEach(input=>{
+        data.jam.push(input.value)
+    })
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+}
+
+
+/* LOAD DATA */
+function loadAutoSave(){
+
+    let data = localStorage.getItem(STORAGE_KEY)
+
+    if(!data) return
+
+    data = JSON.parse(data)
+
+    if(data.gaji){
+        document.getElementById("gajiPokok").value = data.gaji
+    }
+
+    let inputs = document.querySelectorAll(".jam-input")
+
+    inputs.forEach((input,i)=>{
+        if(data.jam[i] !== undefined){
+            input.value = data.jam[i]
+        }
+    })
+
+    hitungTotal()
+}
+
+
+/* TAMBAHKAN EVENT AUTOSAVE */
+document.getElementById("gajiPokok").addEventListener("input", autoSave)
+
+document.querySelectorAll(".jam-input").forEach(input=>{
+    input.addEventListener("input", autoSave)
+})
+
+
+/* LOAD SAAT HALAMAN DIBUKA */
+window.addEventListener("load", loadAutoSave)
+
+</script>
+</body>
+</html>
